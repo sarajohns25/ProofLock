@@ -508,3 +508,11 @@ button:disabled {
         line-height: 1.9;
     }
 }
+
+#verificationResult {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    min-height: 95px;
+}

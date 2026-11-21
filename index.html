@@ -1,0 +1,67 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>ProofLock | Evidence Hashing</title>
+
+    <link rel="stylesheet" href="style.css">
+
+    <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+    <script src="app.js" defer></script>
+</head>
+
+<body>
+
+    <h1>ProofLock</h1>
+
+    <p>Secure Digital Evidence Verification</p>
+
+    <h2>Generate SHA-256 Fingerprint</h2>
+
+    <input type="file" id="file">
+
+    <button id="hashButton">Generate Hash</button>
+
+    <h3>SHA-256 Fingerprint:</h3>
+
+    <p id="hash">Your fingerprint will appear here.</p>
+
+    <button id="sealButton">Seal Evidence on Blockchain</button>
+
+    <p id="sealStatus" class="status-placeholder">
+        Sealing status will appear here after submission.
+    </p>
+
+    <!-- CERTIFICATE SECTION -->
+
+    <div id="certificateSection" hidden>
+
+        <div class="certificate-heading">
+            <h3>Your ProofLock Certificate</h3>
+
+            <p>Your evidence has been successfully registered.</p>
+        </div>
+
+        <button id="certificateButton">
+            Download PDF Certificate
+        </button>
+
+        <p class="certificate-note">
+            Download your certificate and keep it as a record
+            of your blockchain-sealed evidence.
+        </p>
+
+        <div id="qrCode"></div>
+
+    </div>
+
+</body>
+</html>

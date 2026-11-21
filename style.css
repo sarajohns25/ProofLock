@@ -1,0 +1,510 @@
+
+/* ==========================================
+   PROOFLOCK - DARK PLUM THEME
+   COMPLETE STYLESHEET
+   ========================================== */
+
+
+/* ==========================================
+   1. GLOBAL RESET
+   ========================================== */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    min-height: 100vh;
+    font-family: 'Segoe UI', sans-serif;
+
+    background:
+        radial-gradient(
+            circle at 50% 0%,
+            rgba(117, 70, 111, 0.13),
+            transparent 55%
+        ),
+        #111014;
+
+    color: #E8DDE8;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+
+    padding: 55px 20px 75px;
+}
+
+
+/* ==========================================
+   2. BRAND HEADER
+   ========================================== */
+
+h1 {
+    font-size: 46px;
+    font-weight: 750;
+    letter-spacing: 1px;
+    color: #B58AB6;
+
+    margin-bottom: 10px;
+    text-align: center;
+}
+
+body > p:first-of-type {
+    color: #A99BAA;
+    font-size: 14px;
+    letter-spacing: 1px;
+
+    margin-bottom: 65px;
+    text-align: center;
+}
+
+
+/* ==========================================
+   3. SECTION HEADINGS
+   ========================================== */
+
+h2 {
+    font-size: 23px;
+    font-weight: 600;
+    color: #E8DDE8;
+
+    margin-bottom: 28px;
+    text-align: center;
+}
+
+h3 {
+    font-size: 17px;
+    font-weight: 600;
+    color: #B58AB6;
+
+    margin-top: 45px;
+    margin-bottom: 18px;
+}
+
+
+/* ==========================================
+   4. FILE UPLOAD
+   ========================================== */
+
+input[type="file"] {
+    width: 100%;
+    max-width: 460px;
+
+    padding: 18px;
+
+    background: #1C1921;
+    border: 1px dashed #75466F;
+    border-radius: 10px;
+
+    color: #CFC1CF;
+
+    margin-bottom: 24px;
+    cursor: pointer;
+
+    transition: 0.3s ease;
+}
+
+input[type="file"]:hover {
+    border-color: #986B99;
+    background: #25202B;
+}
+
+input[type="file"]::file-selector-button {
+    background: #75466F;
+    color: #FFFFFF;
+
+    border: none;
+    border-radius: 6px;
+
+    padding: 10px 17px;
+    margin-right: 12px;
+
+    cursor: pointer;
+    transition: 0.3s ease;
+}
+
+input[type="file"]::file-selector-button:hover {
+    background: #986B99;
+}
+
+
+/* ==========================================
+   5. BUTTONS
+   ========================================== */
+
+button {
+    background: linear-gradient(
+        135deg,
+        #986B99,
+        #75466F
+    );
+
+    color: #FFFFFF;
+
+    border: 1px solid rgba(181, 138, 182, 0.25);
+    border-radius: 8px;
+
+    padding: 14px 35px;
+
+    font-size: 15px;
+    font-weight: 600;
+
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+button:hover {
+    transform: translateY(-2px);
+
+    box-shadow:
+        0 6px 22px rgba(117, 70, 111, 0.3);
+}
+
+button:active {
+    transform: scale(0.98);
+}
+
+button:disabled {
+    opacity: 0.65;
+    cursor: wait;
+    transform: none;
+}
+
+
+/* ==========================================
+   6. SHA-256 FINGERPRINT
+   ========================================== */
+
+#hash {
+    width: 100%;
+    max-width: 650px;
+
+    min-height: 65px;
+
+    padding: 20px;
+
+    background: #1C1921;
+
+    border: 1px solid #403044;
+    border-radius: 10px;
+
+    color: #C9A5CA;
+
+    font-family: Consolas, monospace;
+    font-size: 13px;
+    line-height: 1.7;
+
+    overflow-wrap: anywhere;
+    text-align: center;
+
+    transition: 0.3s ease;
+}
+
+#hash:hover {
+    border-color: #75466F;
+}
+
+
+/* ==========================================
+   7. SEAL BUTTON
+   ========================================== */
+
+#sealButton {
+    margin-top: 25px;
+    margin-bottom: 0;
+}
+
+
+/* ==========================================
+   8. SEALING STATUS
+   No extra box or background
+   ========================================== */
+
+#sealStatus {
+    width: 100%;
+    max-width: 750px;
+
+    margin: 7px auto 0;
+    padding: 0;
+
+    background: transparent;
+    border: none;
+
+    color: #C9A5CA;
+
+    font-size: 12px;
+    line-height: 1.7;
+
+    text-align: center;
+
+    overflow-wrap: anywhere;
+    white-space: pre-line;
+}
+
+#sealStatus.status-placeholder {
+    color: #A99BAA;
+}
+
+#sealStatus a {
+    color: #C58AC7;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+#sealStatus a:hover {
+    color: #E2B5E3;
+    text-decoration: underline;
+}
+
+
+/* ==========================================
+   9. CERTIFICATE PANEL
+   ========================================== */
+
+#certificateSection {
+    width: 100%;
+    max-width: 750px;
+
+    margin: 35px auto 20px;
+    padding: 30px 35px;
+
+    background: linear-gradient(
+        145deg,
+        #211B27,
+        #19151E
+    );
+
+    border: 1px solid #604360;
+    border-radius: 15px;
+
+    text-align: center;
+
+    box-shadow:
+        0 12px 35px rgba(0, 0, 0, 0.22);
+}
+
+/* Critical: hidden until successful sealing */
+
+#certificateSection[hidden] {
+    display: none !important;
+}
+
+
+/* Certificate heading */
+
+.certificate-heading {
+    text-align: center;
+    margin-bottom: 25px;
+}
+
+.certificate-heading h3 {
+    margin: 0 0 10px;
+
+    font-size: 21px;
+    font-weight: 650;
+
+    color: #D0A4D1;
+    letter-spacing: 0.2px;
+}
+
+.certificate-heading p {
+    margin: 0;
+
+    color: #AFA1B2;
+
+    font-size: 13px;
+    line-height: 1.7;
+}
+
+
+/* Certificate download button */
+
+#certificateButton {
+    min-width: 270px;
+
+    margin: 5px 0 14px;
+    padding: 15px 28px;
+
+    background: linear-gradient(
+        135deg,
+        #986B99,
+        #75466F
+    );
+
+    border: 1px solid rgba(181, 138, 182, 0.3);
+    border-radius: 9px;
+
+    color: #FFFFFF;
+
+    font-size: 14px;
+    font-weight: 650;
+}
+
+#certificateButton:hover {
+    box-shadow:
+        0 7px 22px rgba(181, 138, 182, 0.22);
+}
+
+
+/* Certificate description */
+
+.certificate-note {
+    margin-top: 10px;
+
+    color: #A99BAA;
+
+    font-size: 12px;
+    line-height: 1.8;
+}
+
+
+/* Hidden QR code generator */
+
+#qrCode {
+    position: absolute;
+    left: -10000px;
+    top: 0;
+
+    width: 180px;
+    height: 180px;
+}
+
+
+/* ==========================================
+   10. VERIFICATION RESULT
+   ========================================== */
+
+#verificationResult {
+    width: 100%;
+    max-width: 750px;
+
+    white-space: pre-line;
+    overflow-wrap: anywhere;
+
+    line-height: 1.9;
+
+    margin: 25px auto;
+    padding: 22px;
+
+    text-align: left;
+
+    background: #1C1921;
+
+    border: 1px solid #75466F;
+    border-radius: 10px;
+}
+
+
+/* ==========================================
+   11. MOBILE RESPONSIVENESS
+   ========================================== */
+
+@media (max-width: 600px) {
+
+    body {
+        padding: 38px 18px 55px;
+    }
+
+    h1 {
+        font-size: 36px;
+    }
+
+    body > p:first-of-type {
+        font-size: 12px;
+        margin-bottom: 48px;
+    }
+
+    h2 {
+        font-size: 19px;
+        text-align: center;
+    }
+
+    input[type="file"] {
+        font-size: 12px;
+    }
+
+    #hash {
+        font-size: 11px;
+        padding: 16px;
+    }
+
+    #sealStatus,
+    #verificationResult {
+        padding: 0;
+        font-size: 12px;
+    }
+
+    #certificateSection {
+        padding: 26px 17px;
+        margin-top: 30px;
+    }
+
+    .certificate-heading h3 {
+        font-size: 18px;
+    }
+
+    .certificate-heading p {
+        font-size: 12px;
+    }
+
+    #certificateButton {
+        width: 100%;
+        min-width: unset;
+    }
+
+    .certificate-note {
+        font-size: 11px;
+    }
+}
+
+
+/* Improved blockchain sealing details */
+#sealStatus {
+    max-width: 760px;
+    width: 90%;
+    margin: 12px auto 22px;
+    padding: 18px 22px;
+
+    font-size: 15px;
+    line-height: 2;
+    text-align: center;
+
+    color: #eadcf5;
+    background: rgba(166, 112, 166, 0.09);
+    border: 1px solid rgba(190, 135, 190, 0.35);
+    border-radius: 12px;
+
+    overflow-wrap: anywhere;
+}
+
+/* Emphasise field labels */
+#sealStatus strong {
+    color: #e7a9e9;
+    font-weight: 700;
+}
+
+/* Transaction link */
+#sealStatus a {
+    display: inline-block;
+    margin-top: 8px;
+    color: #d99bfa;
+    font-weight: 700;
+    text-decoration: none;
+}
+
+#sealStatus a:hover {
+    color: #ffffff;
+    text-decoration: underline;
+}
+
+@media (max-width: 600px) {
+    #sealStatus {
+        width: 95%;
+        padding: 15px;
+        font-size: 13px;
+        line-height: 1.9;
+    }
+}

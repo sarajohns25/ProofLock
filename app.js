@@ -2,6 +2,7 @@
 // ============================================================
 // PROOFLOCK — MAIN APPLICATION
 // File hashing | Blockchain sealing | PDF certificate | QR
+// Wallet-free blockchain verification
 // ============================================================
 
 
@@ -16,6 +17,7 @@ const CONTRACT_ABI = [
 ];
 
 const SEPOLIA_CHAIN_ID = 11155111;
+const SEPOLIA_CHAIN_HEX = "0xaa36a7";
 
 const SEPOLIA_RPC =
     "https://ethereum-sepolia-rpc.publicnode.com";
@@ -23,11 +25,6 @@ const SEPOLIA_RPC =
 const ETHERSCAN_TX_URL =
     "https://sepolia.etherscan.io/tx/";
 
-const ETHERSCAN_ADDRESS_URL =
-    "https://sepolia.etherscan.io/address/";
-
-// Public verification page.
-// QR codes must use this URL, not the local Live Server URL.
 const PUBLIC_VERIFY_URL =
     "https://sarajohns25.github.io/ProofLock/verify.html";
 
@@ -51,7 +48,6 @@ const certificateSection =
 
 const certificateButton =
     document.getElementById("certificateButton");
-
 
 // Verification page elements
 
@@ -83,11 +79,14 @@ let currentFileHash = null;
 let latestCertificateData = null;
 
 
-// -------------------- BLOCKCHAIN PROVIDERS -------------------
+// -------------------- READ-ONLY PROVIDER ---------------------
+
+function getReadOnlyProvider() {
+    return new ethers.JsonRpcProvider(SEPOLIA_RPC);
+}
 
 function getReadOnlyContract() {
-
-    const provider = new ethers.JsonRpcProvider(SEPOLIA_RPC);
+    const provider = getReadOnlyProvider();
 
     return new ethers.Contract(
         CONTRACT_ADDRESS,
@@ -97,25 +96,81 @@ function getReadOnlyContract() {
 }
 
 
-async function getWalletContract() {
+// -------------------- NETWORK VALIDATION ---------------------
 
+async function getCurrentWalletChainId() {
     if (!window.ethereum) {
         throw new Error(
             "MetaMask is not installed. Please install MetaMask first."
         );
     }
 
-    const provider = new ethers.BrowserProvider(window.ethereum);
+    const chainIdHex = await window.ethereum.request({
+        method: "eth_chainId"
+    });
 
-    const network = await provider.getNetwork();
+    return Number.parseInt(chainIdHex, 16);
+}
 
-    if (Number(network.chainId) !== SEPOLIA_CHAIN_ID) {
+
+async function ensureSepoliaNetwork() {
+    const chainId = await getCurrentWalletChainId();
+
+    if (chainId !== SEPOLIA_CHAIN_ID) {
         throw new Error(
-            "Please switch MetaMask to the Sepolia test network."
+            "WRONG_NETWORK"
         );
     }
 
+    return true;
+}
+
+
+async function checkContractDeployment(provider) {
+    const code = await provider.getCode(CONTRACT_ADDRESS);
+
+    if (!code || code === "0x") {
+        throw new Error(
+            "The ProofLock contract was not found on the selected network. Please connect to Sepolia."
+        );
+    }
+
+    return true;
+}
+
+
+// -------------------- WALLET CONTRACT ------------------------
+
+async function getWalletContract() {
+    if (!window.ethereum) {
+        throw new Error(
+            "MetaMask is not installed. Please install MetaMask first."
+        );
+    }
+
+    // First check: read the actual MetaMask chain ID.
+    await ensureSepoliaNetwork();
+
+    // Use "any" so ethers can detect network changes.
+    const provider = new ethers.BrowserProvider(
+        window.ethereum,
+        "any"
+    );
+
+    // Confirm the network using the provider too.
+    const network = await provider.getNetwork();
+
+    if (Number(network.chainId) !== SEPOLIA_CHAIN_ID) {
+        throw new Error("WRONG_NETWORK");
+    }
+
+    // Confirm the contract exists at this address.
+    await checkContractDeployment(provider);
+
     const signer = await provider.getSigner();
+
+    // Check again after obtaining the signer.
+    await ensureSepoliaNetwork();
 
     const contract = new ethers.Contract(
         CONTRACT_ADDRESS,
@@ -134,7 +189,6 @@ async function getWalletContract() {
 // -------------------- FILE HASHING ---------------------------
 
 async function calculateSHA256(file) {
-
     const fileBuffer = await file.arrayBuffer();
 
     const hashBuffer = await crypto.subtle.digest(
@@ -142,7 +196,9 @@ async function calculateSHA256(file) {
         fileBuffer
     );
 
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    const hashArray = Array.from(
+        new Uint8Array(hashBuffer)
+    );
 
     const hashHex = hashArray
         .map(byte => byte.toString(16).padStart(2, "0"))
@@ -155,7 +211,6 @@ async function calculateSHA256(file) {
 // -------------------- STATUS DISPLAY -------------------------
 
 function setSealStatus(type, message) {
-
     if (!sealStatus) return;
 
     sealStatus.className = "status";
@@ -186,13 +241,10 @@ function setSealStatus(type, message) {
 }
 
 
-// Display a clickable Etherscan link in the status area.
-
 function setSealSuccessStatus(transactionHash) {
-
     setSealStatus(
         "success",
-        "Evidence sealed successfully! Your fingerprint is recorded on the Sepolia blockchain."
+        "Evidence sealed successfully! Its fingerprint is recorded on the Sepolia blockchain."
     );
 
     const paragraph = sealStatus?.querySelector("p");
@@ -209,9 +261,7 @@ function setSealSuccessStatus(transactionHash) {
         ETHERSCAN_TX_URL + transactionHash;
 
     transactionLink.textContent = "View on Etherscan";
-
     transactionLink.target = "_blank";
-
     transactionLink.rel = "noopener noreferrer";
 
     paragraph.append(transactionLabel, transactionLink);
@@ -224,7 +274,6 @@ function setVerificationResult(
     message,
     details = ""
 ) {
-
     if (!verificationResult) return;
 
     verificationResult.className = "result " + type;
@@ -241,16 +290,18 @@ function setVerificationResult(
         resultDetails.textContent = details;
     }
 
-    const icon = verificationResult.querySelector(".result-icon");
+    const icon =
+        verificationResult.querySelector(".result-icon");
 
     if (icon) {
-
         if (type === "match") {
             icon.textContent = "✓";
         } else if (type === "no-match" || type === "error") {
             icon.textContent = "!";
         } else if (type === "pending") {
             icon.textContent = "…";
+        } else {
+            icon.textContent = "i";
         }
     }
 }
@@ -259,7 +310,6 @@ function setVerificationResult(
 // -------------------- FILE SELECTION -------------------------
 
 function handleFileSelection(file) {
-
     if (!file) return;
 
     selectedEvidenceFile = file;
@@ -293,34 +343,25 @@ function handleFileSelection(file) {
 
 
 if (fileInput) {
-
     fileInput.addEventListener("change", () => {
         handleFileSelection(fileInput.files[0]);
     });
-
 }
 
 
 // -------------------- DRAG AND DROP --------------------------
 
 if (uploadZone && fileInput) {
-
     uploadZone.addEventListener("dragover", event => {
-
         event.preventDefault();
-
         uploadZone.classList.add("dragging");
     });
 
-
     uploadZone.addEventListener("dragleave", () => {
-
         uploadZone.classList.remove("dragging");
     });
 
-
     uploadZone.addEventListener("drop", event => {
-
         event.preventDefault();
 
         uploadZone.classList.remove("dragging");
@@ -333,18 +374,14 @@ if (uploadZone && fileInput) {
 
         handleFileSelection(file);
     });
-
 }
 
 
 // -------------------- GENERATE FINGERPRINT -------------------
 
 if (hashButton) {
-
     hashButton.addEventListener("click", async () => {
-
         if (!selectedEvidenceFile) {
-
             setSealStatus(
                 "error",
                 "Please select a file first."
@@ -354,19 +391,14 @@ if (hashButton) {
         }
 
         try {
-
             hashButton.disabled = true;
-
-            hashButton.textContent =
-                "Generating fingerprint...";
+            hashButton.textContent = "Generating fingerprint...";
 
             currentFileHash =
                 await calculateSHA256(selectedEvidenceFile);
 
             if (hashOutput) {
-
                 hashOutput.textContent = currentFileHash;
-
                 hashOutput.classList.remove("empty-hash");
             }
 
@@ -380,7 +412,6 @@ if (hashButton) {
             );
 
         } catch (error) {
-
             console.error(error);
 
             setSealStatus(
@@ -389,26 +420,18 @@ if (hashButton) {
             );
 
         } finally {
-
             hashButton.disabled = false;
-
-            hashButton.textContent =
-                "Generate fingerprint";
+            hashButton.textContent = "Generate fingerprint";
         }
-
     });
-
 }
 
 
 // -------------------- COPY FINGERPRINT -----------------------
 
 if (copyHashButton) {
-
     copyHashButton.addEventListener("click", async () => {
-
         if (!currentFileHash) {
-
             setSealStatus(
                 "error",
                 "Generate a fingerprint before copying."
@@ -418,19 +441,15 @@ if (copyHashButton) {
         }
 
         try {
-
             await navigator.clipboard.writeText(currentFileHash);
 
             copyHashButton.textContent = "Copied!";
 
             setTimeout(() => {
-
                 copyHashButton.textContent = "Copy";
-
             }, 1500);
 
         } catch (error) {
-
             console.error(error);
 
             setSealStatus(
@@ -438,20 +457,86 @@ if (copyHashButton) {
                 "Unable to copy the fingerprint. Please copy it manually."
             );
         }
-
     });
-
 }
 
 
-// -------------------- SEAL ON BLOCKCHAIN --------------------
+// -------------------- CHECK EXISTING RECORD ------------------
+
+async function checkExistingRecord(hash) {
+    const contract = getReadOnlyContract();
+
+    const result = await contract.verify(hash);
+
+    return {
+        exists: result[0],
+        owner: result[1],
+        timestamp: Number(result[2])
+    };
+}
+
+
+// -------------------- ERROR MESSAGE HANDLING -----------------
+
+function getSealErrorMessage(error) {
+    console.error("ProofLock sealing error:", error);
+
+    if (
+        error.message === "WRONG_NETWORK" ||
+        error.message?.includes("WRONG_NETWORK")
+    ) {
+        return "Wrong network. Please switch MetaMask to the Sepolia test network and try again.";
+    }
+
+    if (error.code === "ACTION_REJECTED") {
+        return "Transaction was rejected in MetaMask. No seal was created.";
+    }
+
+    if (
+        error.code === "INSUFFICIENT_FUNDS" ||
+        error.message?.toLowerCase().includes("insufficient funds")
+    ) {
+        return "Insufficient Sepolia ETH to pay the transaction fee.";
+    }
+
+    const errorText = (
+        error.shortMessage ||
+        error.reason ||
+        error.message ||
+        ""
+    ).toLowerCase();
+
+    if (
+        errorText.includes("already sealed") ||
+        errorText.includes("already exists")
+    ) {
+        return "This file has already been sealed on the blockchain. Use its existing certificate to verify it.";
+    }
+
+    if (
+        error.code === "CALL_EXCEPTION" ||
+        errorText.includes("execution reverted")
+    ) {
+        return "The smart contract rejected this request. The file may already be sealed.";
+    }
+
+    if (
+        error.code === "NETWORK_ERROR" ||
+        error.code === "SERVER_ERROR" ||
+        errorText.includes("network")
+    ) {
+        return "Unable to communicate with the blockchain. Check your connection and try again.";
+    }
+
+    return "Unable to seal the evidence. Please check your wallet and try again.";
+}
+
+
+// -------------------- SEAL ON BLOCKCHAIN ---------------------
 
 if (sealButton) {
-
     sealButton.addEventListener("click", async () => {
-
         if (!selectedEvidenceFile || !currentFileHash) {
-
             setSealStatus(
                 "error",
                 "Generate a fingerprint first."
@@ -461,15 +546,49 @@ if (sealButton) {
         }
 
         try {
-
             sealButton.disabled = true;
+            sealButton.textContent = "Checking network...";
 
-            sealButton.textContent = "Connecting wallet...";
+            if (certificateSection) {
+                certificateSection.hidden = true;
+            }
+
+            latestCertificateData = null;
+
+            // CHECK 1: Verify the actual MetaMask network.
+            await ensureSepoliaNetwork();
 
             setSealStatus(
                 "pending",
-                "Connect MetaMask and approve the transaction."
+                "Checking whether this fingerprint has already been sealed..."
             );
+
+            // CHECK 2: Check for duplicates before requesting a transaction.
+            let existingRecord;
+
+            try {
+                existingRecord =
+                    await checkExistingRecord(currentFileHash);
+
+            } catch (lookupError) {
+                console.error(lookupError);
+
+                throw new Error(
+                    "Unable to check existing blockchain records. Please try again before sealing."
+                );
+            }
+
+            if (existingRecord.exists) {
+                setSealStatus(
+                    "error",
+                    "This file has already been sealed on the blockchain. Use its existing certificate to verify it."
+                );
+
+                return;
+            }
+
+            // CHECK 3: Connect wallet and check Sepolia.
+            sealButton.textContent = "Connecting wallet...";
 
             const {
                 provider,
@@ -479,55 +598,107 @@ if (sealButton) {
 
             const walletAddress = await signer.getAddress();
 
-            sealButton.textContent =
-                "Waiting for confirmation...";
+            // CHECK 4: Recheck immediately before submitting.
+            await ensureSepoliaNetwork();
 
-            const transaction =
-                await contract.seal(currentFileHash);
+            const currentNetwork = await provider.getNetwork();
+
+            if (Number(currentNetwork.chainId) !== SEPOLIA_CHAIN_ID) {
+                throw new Error("WRONG_NETWORK");
+            }
+
+            await checkContractDeployment(provider);
 
             setSealStatus(
                 "pending",
-                "Transaction submitted. Waiting for blockchain confirmation..."
+                "Sepolia confirmed. Waiting for MetaMask transaction approval..."
             );
 
-            const receipt = await transaction.wait();
+            sealButton.textContent = "Waiting for confirmation...";
 
-            if (!receipt || receipt.status !== 1) {
+            // Submit the transaction only after all checks.
+            const transaction =
+                await contract.seal(currentFileHash);
+
+            // Check the transaction's reported chain ID.
+            if (
+                transaction.chainId &&
+                Number(transaction.chainId) !== SEPOLIA_CHAIN_ID
+            ) {
                 throw new Error(
-                    "The blockchain transaction was not successful."
+                    "The transaction was submitted on an unexpected network."
                 );
             }
 
-            const block = await provider.getBlock(
+            setSealStatus(
+                "pending",
+                "Transaction submitted. Waiting for Sepolia confirmation..."
+            );
+
+            // Wait for the transaction using the Sepolia read-only RPC.
+            const readOnlyProvider = getReadOnlyProvider();
+
+            const receipt = await readOnlyProvider.waitForTransaction(
+                transaction.hash,
+                1,
+                120000
+            );
+
+            if (!receipt) {
+                throw new Error(
+                    "Transaction confirmation timed out. Check the transaction on Etherscan before trying again."
+                );
+            }
+
+            if (receipt.status !== 1) {
+                throw new Error(
+                    "The blockchain transaction failed. No certificate was generated."
+                );
+            }
+
+            // Confirm that the transaction went to our contract.
+            if (
+                !receipt.to ||
+                receipt.to.toLowerCase() !== CONTRACT_ADDRESS.toLowerCase()
+            ) {
+                throw new Error(
+                    "The transaction destination does not match the ProofLock contract."
+                );
+            }
+
+            // Confirm the transaction actually created the record.
+            const confirmedRecord =
+                await checkExistingRecord(currentFileHash);
+
+            if (!confirmedRecord.exists) {
+                throw new Error(
+                    "The transaction was confirmed, but the fingerprint could not be found in the ProofLock contract. Do not generate a certificate."
+                );
+            }
+
+            // Retrieve the confirmed block timestamp.
+            const block = await readOnlyProvider.getBlock(
                 receipt.blockNumber
             );
 
             if (!block) {
                 throw new Error(
-                    "Transaction succeeded, but its block timestamp could not be retrieved. Check the transaction on Etherscan."
+                    "The transaction succeeded, but its block timestamp could not be retrieved. Check Etherscan."
                 );
             }
 
             const sealedTimestamp = Number(block.timestamp);
 
+            // Only now create certificate data.
             latestCertificateData = {
-
                 fileName: selectedEvidenceFile.name,
-
                 fileHash: currentFileHash,
-
                 transactionHash: transaction.hash,
-
-                walletAddress: walletAddress,
-
+                walletAddress: confirmedRecord.owner,
                 sealedTimestamp: sealedTimestamp
             };
 
-
-            // Show success and clickable Etherscan link.
-
             setSealSuccessStatus(transaction.hash);
-
 
             if (certificateSection) {
                 certificateSection.hidden = false;
@@ -538,47 +709,28 @@ if (sealButton) {
             }
 
         } catch (error) {
-
-            console.error(error);
-
-            let message = "Unable to seal the evidence.";
-
-            if (error.code === "ACTION_REJECTED") {
-
-                message =
-                    "Transaction was rejected in MetaMask.";
-
-            } else if (
-                error.code === "CALL_EXCEPTION" ||
-                error.code === "INSUFFICIENT_FUNDS"
-            ) {
-
-                message = error.shortMessage || error.message;
-
-            } else if (error.message) {
-
-                message = error.message;
-            }
+            const message = getSealErrorMessage(error);
 
             setSealStatus("error", message);
 
+            // Never leave certificate data after a failed attempt.
+            latestCertificateData = null;
+
+            if (certificateSection) {
+                certificateSection.hidden = true;
+            }
+
         } finally {
-
             sealButton.disabled = false;
-
-            sealButton.textContent =
-                "Seal on blockchain";
+            sealButton.textContent = "Seal on blockchain";
         }
-
     });
-
 }
 
 
 // -------------------- DATE FORMATTING ------------------------
 
 function formatTimestamp(timestamp) {
-
     return new Date(
         Number(timestamp) * 1000
     ).toLocaleString(
@@ -598,16 +750,12 @@ function formatTimestamp(timestamp) {
 // -------------------- PDF CERTIFICATE -----------------------
 
 async function generateCertificate() {
-
     if (!latestCertificateData) {
-
         alert("No successful seal record is available.");
-
         return;
     }
 
     if (!window.jspdf || !window.QRCode) {
-
         alert(
             "The PDF or QR library could not load. Check your internet connection and refresh the page."
         );
@@ -616,102 +764,53 @@ async function generateCertificate() {
     }
 
     const data = latestCertificateData;
-
     const { jsPDF } = window.jspdf;
 
     const pdf = new jsPDF({
-
         orientation: "portrait",
-
         unit: "mm",
-
         format: "a4"
     });
 
     const pageWidth = 210;
-    const pageHeight = 297;
-
 
     // Background
-
     pdf.setFillColor(249, 247, 253);
-
-    pdf.rect(
-        0,
-        0,
-        pageWidth,
-        pageHeight,
-        "F"
-    );
-
+    pdf.rect(0, 0, pageWidth, 297, "F");
 
     // Header
-
     pdf.setFillColor(39, 31, 57);
-
-    pdf.rect(
-        0,
-        0,
-        pageWidth,
-        43,
-        "F"
-    );
+    pdf.rect(0, 0, pageWidth, 43, "F");
 
     pdf.setTextColor(255, 255, 255);
-
     pdf.setFont("helvetica", "bold");
-
     pdf.setFontSize(23);
-
     pdf.text("PROOFLOCK", 18, 20);
 
     pdf.setFont("helvetica", "normal");
-
     pdf.setFontSize(9);
-
     pdf.setTextColor(213, 202, 235);
-
-    pdf.text(
-        "DIGITAL EVIDENCE CERTIFICATE",
-        18,
-        30
-    );
+    pdf.text("DIGITAL EVIDENCE CERTIFICATE", 18, 30);
 
     pdf.setFontSize(8);
-
     pdf.text(
         "SEPOLIA TEST NETWORK",
         192,
         20,
-        {
-            align: "right"
-        }
+        { align: "right" }
     );
 
-
     // Main card
-
     pdf.setFillColor(255, 255, 255);
-
     pdf.setDrawColor(222, 215, 235);
 
     pdf.roundedRect(
-        13,
-        51,
-        184,
-        193,
-        4,
-        4,
-        "FD"
+        13, 51, 184, 193, 4, 4, "FD"
     );
 
-
     // Certificate heading
-
     pdf.setTextColor(57, 43, 78);
-
     pdf.setFont("helvetica", "bold");
-
     pdf.setFontSize(16);
 
     pdf.text(
@@ -721,9 +820,7 @@ async function generateCertificate() {
     );
 
     pdf.setFont("helvetica", "normal");
-
     pdf.setFontSize(9);
-
     pdf.setTextColor(112, 103, 125);
 
     pdf.text(
@@ -732,13 +829,9 @@ async function generateCertificate() {
         74
     );
 
-
     // Reference
-
     pdf.setFont("helvetica", "bold");
-
     pdf.setFontSize(8);
-
     pdf.setTextColor(125, 111, 151);
 
     pdf.text(
@@ -751,31 +844,21 @@ async function generateCertificate() {
         data.transactionHash.slice(0, 18).toUpperCase();
 
     pdf.setFont("helvetica", "bold");
-
     pdf.setFontSize(10);
-
     pdf.setTextColor(57, 43, 78);
 
     pdf.text(reference, 20, 95);
 
-
     // Divider
-
     pdf.setDrawColor(231, 226, 239);
-
     pdf.line(20, 102, 190, 102);
 
-
     // Details helper
-
     let y = 113;
 
     function addDetail(label, value, maxWidth = 168) {
-
         pdf.setFont("helvetica", "bold");
-
         pdf.setFontSize(8);
-
         pdf.setTextColor(125, 111, 151);
 
         pdf.text(label.toUpperCase(), 20, y);
@@ -783,9 +866,7 @@ async function generateCertificate() {
         y += 6;
 
         pdf.setFont("helvetica", "normal");
-
         pdf.setFontSize(8.5);
-
         pdf.setTextColor(48, 42, 59);
 
         const lines = pdf.splitTextToSize(
@@ -798,41 +879,17 @@ async function generateCertificate() {
         y += lines.length * 4.5 + 7;
     }
 
-
-    addDetail(
-        "Evidence file",
-        data.fileName
-    );
-
-    addDetail(
-        "SHA-256 fingerprint",
-        data.fileHash
-    );
-
+    addDetail("Evidence file", data.fileName);
+    addDetail("SHA-256 fingerprint", data.fileHash);
     addDetail(
         "Blockchain timestamp",
         formatTimestamp(data.sealedTimestamp)
     );
-
-    addDetail(
-        "Wallet address",
-        data.walletAddress
-    );
-
-    addDetail(
-        "Transaction hash",
-        data.transactionHash
-    );
-
+    addDetail("Wallet address", data.walletAddress);
+    addDetail("Transaction hash", data.transactionHash);
 
     // QR code
-
     const qrContainer = document.createElement("div");
-
-    // IMPORTANT:
-    // Use the public GitHub Pages URL.
-    // Do not use window.location.href here.
-    // Otherwise local certificates contain 127.0.0.1.
 
     const verificationURL =
         PUBLIC_VERIFY_URL +
@@ -840,21 +897,15 @@ async function generateCertificate() {
         encodeURIComponent(data.fileHash);
 
     new QRCode(qrContainer, {
-
         text: verificationURL,
-
         width: 220,
-
         height: 220,
-
         correctLevel: QRCode.CorrectLevel.M
     });
 
-    const qrCanvas =
-        qrContainer.querySelector("canvas");
+    const qrCanvas = qrContainer.querySelector("canvas");
 
     if (!qrCanvas) {
-
         alert(
             "Unable to generate the QR code. Please try again."
         );
@@ -864,22 +915,14 @@ async function generateCertificate() {
 
     const qrImage = qrCanvas.toDataURL("image/png");
 
-
     // QR section
-
     const qrY = Math.min(
         Math.max(y + 2, 181),
         203
     );
 
     pdf.setDrawColor(231, 226, 239);
-
-    pdf.line(
-        20,
-        qrY - 5,
-        190,
-        qrY - 5
-    );
+    pdf.line(20, qrY - 5, 190, qrY - 5);
 
     pdf.addImage(
         qrImage,
@@ -891,21 +934,13 @@ async function generateCertificate() {
     );
 
     pdf.setFont("helvetica", "bold");
-
     pdf.setFontSize(10);
-
     pdf.setTextColor(57, 43, 78);
 
-    pdf.text(
-        "SCAN TO VERIFY",
-        59,
-        qrY + 9
-    );
+    pdf.text("SCAN TO VERIFY", 59, qrY + 9);
 
     pdf.setFont("helvetica", "normal");
-
     pdf.setFontSize(8);
-
     pdf.setTextColor(112, 103, 125);
 
     pdf.text(
@@ -917,71 +952,52 @@ async function generateCertificate() {
         qrY + 16
     );
 
-
     // Footer
-
     pdf.setFont("helvetica", "normal");
-
     pdf.setFontSize(7.5);
-
     pdf.setTextColor(130, 122, 141);
 
     pdf.text(
         "ProofLock records file fingerprints. It does not establish the truth or authenticity of file contents.",
         105,
         267,
-        {
-            align: "center"
-        }
+        { align: "center" }
     );
 
     pdf.text(
         "Contract: " + CONTRACT_ADDRESS,
         105,
         275,
-        {
-            align: "center"
-        }
+        { align: "center" }
     );
 
     pdf.setFont("helvetica", "bold");
-
     pdf.setTextColor(91, 69, 126);
 
     pdf.text(
         "PROOFLOCK  |  DIGITAL EVIDENCE INTEGRITY",
         105,
         285,
-        {
-            align: "center"
-        }
+        { align: "center" }
     );
 
-
     // Safe PDF filename
-
     const safeName = data.fileName
-
         .replace(/\.[^/.]+$/, "")
-
         .replace(/[^a-z0-9_-]/gi, "_")
-
         .slice(0, 45);
 
     pdf.save(
         "ProofLock_Certificate_" + safeName + ".pdf"
     );
-
 }
 
 
 if (certificateButton) {
-
     certificateButton.addEventListener(
         "click",
         generateCertificate
     );
-
 }
 
 
@@ -993,17 +1009,13 @@ if (certificateButton) {
 // -------------------- BLOCKCHAIN RECORD LOOKUP --------------
 
 async function lookupBlockchainRecord(hash) {
-
     const contract = getReadOnlyContract();
 
     const result = await contract.verify(hash);
 
     return {
-
         exists: result[0],
-
         owner: result[1],
-
         timestamp: Number(result[2])
     };
 }
@@ -1016,15 +1028,11 @@ const urlParameters =
 
 const qrHash = urlParameters.get("hash");
 
-let qrRecordFound = false;
-
 
 async function verifyQRRecord() {
-
     if (!qrHash || !verificationResult) return;
 
     if (!/^0x[a-fA-F0-9]{64}$/.test(qrHash)) {
-
         setVerificationResult(
             "error",
             "Invalid QR fingerprint",
@@ -1049,14 +1057,10 @@ async function verifyQRRecord() {
     );
 
     try {
-
         const record =
             await lookupBlockchainRecord(qrHash);
 
         if (!record.exists) {
-
-            qrRecordFound = false;
-
             setVerificationResult(
                 "no-match",
                 "No blockchain record found",
@@ -1066,10 +1070,8 @@ async function verifyQRRecord() {
             return;
         }
 
-        qrRecordFound = true;
-
         setVerificationResult(
-            "match",
+            "pending",
             "Blockchain record found",
             "This certificate fingerprint exists on the Sepolia blockchain. Upload the evidence file below to compare its contents.",
             "Recorded by: " + record.owner +
@@ -1078,7 +1080,6 @@ async function verifyQRRecord() {
         );
 
     } catch (error) {
-
         console.error(error);
 
         setVerificationResult(
@@ -1093,9 +1094,7 @@ async function verifyQRRecord() {
 // -------------------- MANUAL FILE VERIFICATION --------------
 
 async function verifySelectedFile() {
-
     if (!fileInput || !fileInput.files[0]) {
-
         setVerificationResult(
             "error",
             "No file selected",
@@ -1108,11 +1107,8 @@ async function verifySelectedFile() {
     const file = fileInput.files[0];
 
     try {
-
         if (verifyButton) {
-
             verifyButton.disabled = true;
-
             verifyButton.textContent = "Verifying...";
         }
 
@@ -1125,17 +1121,12 @@ async function verifySelectedFile() {
         const uploadedHash =
             await calculateSHA256(file);
 
-
-        // If the verification page was opened using a QR code,
-        // compare the uploaded file against the certificate hash.
-
+        // QR certificate verification
         if (qrHash) {
-
             if (
                 uploadedHash.toLowerCase() !==
                 qrHash.toLowerCase()
             ) {
-
                 setVerificationResult(
                     "no-match",
                     "NO MATCH — File differs",
@@ -1147,15 +1138,12 @@ async function verifySelectedFile() {
                 return;
             }
 
-
-            // The file matches the QR fingerprint.
-            // Now confirm that the fingerprint exists on-chain.
-
+            // File matches QR fingerprint.
+            // Confirm the fingerprint exists on-chain.
             const record =
                 await lookupBlockchainRecord(qrHash);
 
             if (!record.exists) {
-
                 setVerificationResult(
                     "no-match",
                     "No blockchain record found",
@@ -1179,15 +1167,11 @@ async function verifySelectedFile() {
             return;
         }
 
-
-        // If the page was opened directly without a QR code,
-        // check whether the uploaded file's fingerprint exists.
-
+        // Direct verification without QR.
         const record =
             await lookupBlockchainRecord(uploadedHash);
 
         if (!record.exists) {
-
             setVerificationResult(
                 "no-match",
                 "NO MATCH — No record found",
@@ -1210,7 +1194,6 @@ async function verifySelectedFile() {
         );
 
     } catch (error) {
-
         console.error(error);
 
         setVerificationResult(
@@ -1220,11 +1203,8 @@ async function verifySelectedFile() {
         );
 
     } finally {
-
         if (verifyButton) {
-
             verifyButton.disabled = false;
-
             verifyButton.textContent = "Verify evidence";
         }
     }
@@ -1232,21 +1212,17 @@ async function verifySelectedFile() {
 
 
 if (verifyButton) {
-
     verifyButton.addEventListener(
         "click",
         verifySelectedFile
     );
-
 }
 
 
 // -------------------- VERIFICATION FILE SELECTION -----------
 
 if (fileInput && verifyButton) {
-
     fileInput.addEventListener("change", () => {
-
         const file = fileInput.files[0];
 
         if (selectedFile && file) {
@@ -1254,23 +1230,19 @@ if (fileInput && verifyButton) {
         }
 
         if (file) {
-
             setVerificationResult(
                 "pending",
                 "File selected",
                 "Click Verify evidence to compare this file with its blockchain record."
             );
         }
-
     });
-
 }
 
 
 // -------------------- INITIALIZE VERIFICATION PAGE ----------
 
 if (verificationResult && qrHash) {
-
     verifyQRRecord();
 }
 

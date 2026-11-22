@@ -1,67 +1,484 @@
 
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>ProofLock | Evidence Hashing</title>
+    <title>ProofLock | Digital Evidence Integrity</title>
+
+    <meta
+        name="description"
+        content="Secure digital evidence with SHA-256 fingerprinting and blockchain verification using ProofLock."
+    >
 
     <link rel="stylesheet" href="style.css">
 
+    <!-- Ethers.js for blockchain interaction -->
     <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
 
+    <!-- jsPDF for certificate generation -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
+    <!-- QRCode for certificate verification -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
+    <!-- Main application JavaScript -->
     <script src="app.js" defer></script>
+
 </head>
+
 
 <body>
 
-    <h1>ProofLock</h1>
+    <!-- Background decoration -->
+    <div class="glow glow-a"></div>
+    <div class="glow glow-b"></div>
 
-    <p>Secure Digital Evidence Verification</p>
 
-    <h2>Generate SHA-256 Fingerprint</h2>
+    <!-- =========================================
+         NAVIGATION
+    ========================================== -->
 
-    <input type="file" id="file">
+    <header class="topbar">
 
-    <button id="hashButton">Generate Hash</button>
+        <a href="index.html" class="brand">
 
-    <h3>SHA-256 Fingerprint:</h3>
+            <span class="brand-icon">⌑</span>
 
-    <p id="hash">Your fingerprint will appear here.</p>
+            PROOF<span>LOCK</span>
 
-    <button id="sealButton">Seal Evidence on Blockchain</button>
+        </a>
 
-    <p id="sealStatus" class="status-placeholder">
-        Sealing status will appear here after submission.
-    </p>
 
-    <!-- CERTIFICATE SECTION -->
+        <nav>
 
-    <div id="certificateSection" hidden>
+            <a href="index.html" class="active">
+                Seal evidence
+            </a>
 
-        <div class="certificate-heading">
-            <h3>Your ProofLock Certificate</h3>
+            <a href="verify.html">
+                Verify
+            </a>
 
-            <p>Your evidence has been successfully registered.</p>
+        </nav>
+
+
+        <div class="network">
+
+            <span class="network-dot"></span>
+
+            Sepolia network
+
         </div>
 
-        <button id="certificateButton">
-            Download PDF Certificate
-        </button>
+    </header>
 
-        <p class="certificate-note">
-            Download your certificate and keep it as a record
-            of your blockchain-sealed evidence.
+
+
+    <!-- =========================================
+         MAIN CONTENT
+    ========================================== -->
+
+    <main class="shell">
+
+
+        <!-- HERO SECTION -->
+
+        <section class="hero">
+
+            <div class="eyebrow">
+
+                <span class="eyebrow-dot"></span>
+
+                DIGITAL EVIDENCE INTEGRITY
+
+            </div>
+
+
+            <h1>
+                Secure your evidence.
+                <span>Prove its integrity.</span>
+            </h1>
+
+
+            <p>
+                Generate a unique SHA-256 fingerprint for your digital
+                evidence and record it on the blockchain.
+                Verify its integrity whenever you need.
+            </p>
+
+
+            <div class="proof-points">
+
+                <span>
+                    <span class="proof-check">✓</span>
+                    SHA-256 fingerprinting
+                </span>
+
+                <span>
+                    <span class="proof-check">✓</span>
+                    Blockchain timestamp
+                </span>
+
+                <span>
+                    <span class="proof-check">✓</span>
+                    QR verification
+                </span>
+
+            </div>
+
+        </section>
+
+
+
+        <!-- =========================================
+             EVIDENCE SEALING PANEL
+        ========================================== -->
+
+        <section class="panel">
+
+
+            <!-- PANEL HEADER -->
+
+            <div class="panel-head">
+
+                <div>
+
+                    <div class="step">
+                        STEP 01
+                    </div>
+
+                    <h2>
+                        Upload your evidence
+                    </h2>
+
+                    <p>
+                        Select the file you want to fingerprint and
+                        securely record on the blockchain.
+                    </p>
+
+                </div>
+
+                <span class="panel-number">
+                    01
+                </span>
+
+            </div>
+
+
+
+            <!-- =====================================
+                 FILE UPLOAD AREA
+            ====================================== -->
+
+            <input
+                type="file"
+                id="file"
+                hidden
+            >
+
+
+            <label
+                for="file"
+                class="dropzone"
+                id="uploadZone"
+            >
+
+                <span class="upload-symbol">
+                    ↑
+                </span>
+
+
+                <h3>
+                    Drop your evidence file here
+                </h3>
+
+
+                <p>
+                    or
+                    <span class="upload-link">browse files</span>
+                    from your device
+                </p>
+
+
+                <p class="upload-note">
+                    The original file is not uploaded or stored by ProofLock.
+                </p>
+
+
+                <span
+                    id="selectedFile"
+                    class="selected-file"
+                >
+                    No file selected
+                </span>
+
+            </label>
+
+
+
+            <!-- =====================================
+                 HASHING AND SEALING BUTTONS
+            ====================================== -->
+
+            <div class="actions">
+
+                <button
+                    type="button"
+                    id="hashButton"
+                    class="btn secondary"
+                >
+                    Generate fingerprint
+                </button>
+
+
+                <button
+                    type="button"
+                    id="sealButton"
+                    class="btn primary"
+                    disabled
+                >
+                    ◇ Seal on blockchain
+                </button>
+
+            </div>
+
+
+
+            <!-- =====================================
+                 GENERATED FINGERPRINT
+            ====================================== -->
+
+            <div class="hash-panel">
+
+
+                <div class="hash-head">
+
+                    <div>
+
+                        <div class="step">
+                            STEP 02
+                        </div>
+
+                        <h3>
+                            SHA-256 fingerprint
+                        </h3>
+
+                    </div>
+
+
+                    <button
+                        type="button"
+                        id="copyHashButton"
+                        class="copy"
+                    >
+                        Copy
+                    </button>
+
+                </div>
+
+
+
+                <div
+                    id="hash"
+                    class="hash-value empty-hash"
+                >
+                    Your SHA-256 fingerprint will appear here.
+                </div>
+
+
+            </div>
+
+
+
+            <!-- =====================================
+                 BLOCKCHAIN STATUS
+            ====================================== -->
+
+            <div
+                id="sealStatus"
+                class="status status-placeholder"
+                role="status"
+                aria-live="polite"
+            >
+
+                <span>i</span>
+
+                <p>
+                    Choose a file and generate its fingerprint to begin.
+                </p>
+
+            </div>
+
+
+
+            <!-- =====================================
+                 CERTIFICATE SECTION
+            ====================================== -->
+
+            <section
+                id="certificateSection"
+                class="certificate"
+                hidden
+            >
+
+                <div class="cert-icon">
+                    ✓
+                </div>
+
+
+                <div class="cert-copy">
+
+                    <div class="step">
+                        STEP 03
+                    </div>
+
+                    <h3>
+                        Evidence successfully sealed
+                    </h3>
+
+                    <p>
+                        Your evidence fingerprint has been recorded
+                        on the Sepolia blockchain.
+                        Your certificate is ready.
+                    </p>
+
+
+                    <button
+                        type="button"
+                        id="certificateButton"
+                        class="btn primary"
+                    >
+                        Download PDF certificate
+                    </button>
+
+                </div>
+
+            </section>
+
+
+            <!-- QR code is generated here by app.js -->
+            <div
+                id="qrCode"
+                class="qr-generator"
+                aria-hidden="true"
+            ></div>
+
+
+        </section>
+
+
+
+        <!-- =========================================
+             HOW IT WORKS
+        ========================================== -->
+
+        <section class="steps">
+
+            <div class="step-item">
+
+                <span class="step-number">
+                    01
+                </span>
+
+                <h3>
+                    Fingerprint
+                </h3>
+
+                <p>
+                    Generate a unique SHA-256 fingerprint
+                    from your selected file.
+                </p>
+
+            </div>
+
+
+            <div class="step-item">
+
+                <span class="step-number">
+                    02
+                </span>
+
+                <h3>
+                    Seal
+                </h3>
+
+                <p>
+                    Record the fingerprint on the
+                    Sepolia blockchain.
+                </p>
+
+            </div>
+
+
+            <div class="step-item">
+
+                <span class="step-number">
+                    03
+                </span>
+
+                <h3>
+                    Verify
+                </h3>
+
+                <p>
+                    Use your certificate or upload the
+                    file to check its integrity.
+                </p>
+
+            </div>
+
+        </section>
+
+
+
+        <!-- =========================================
+             PRIVACY NOTICE
+        ========================================== -->
+
+        <section class="notice">
+
+            <span class="notice-icon">
+                i
+            </span>
+
+            <p>
+
+                <strong>Your files stay private.</strong>
+
+                ProofLock generates the fingerprint directly in
+                your browser. The original evidence file is not
+                uploaded to the blockchain or stored by ProofLock.
+                Only its fingerprint is recorded.
+
+            </p>
+
+        </section>
+
+
+    </main>
+
+
+
+    <!-- =========================================
+         FOOTER
+    ========================================== -->
+
+    <footer>
+
+        <p>
+            PROOFLOCK · DIGITAL EVIDENCE INTEGRITY
         </p>
 
-        <div id="qrCode"></div>
+        <p>
+            Powered by SHA-256 and the Sepolia blockchain
+        </p>
 
-    </div>
+    </footer>
+
 
 </body>
+
 </html>

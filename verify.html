@@ -1,26 +1,369 @@
 
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>ProofLock | Verify Evidence</title>
+    <title>Verify Evidence | ProofLock</title>
+
+    <meta
+        name="description"
+        content="Verify digital evidence integrity using SHA-256 and the ProofLock blockchain."
+    >
 
     <link rel="stylesheet" href="style.css">
 
+    <!-- Ethers.js for blockchain verification -->
     <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
+
+    <!-- Main application JavaScript -->
     <script src="app.js" defer></script>
+
 </head>
+
+
 <body>
-    <h1>ProofLock</h1>
-    <p>Verify Digital Evidence</p>
 
-    <h2>Check Evidence Integrity</h2>
+    <!-- Background decoration -->
+    <div class="glow glow-a"></div>
+    <div class="glow glow-b"></div>
 
-    <input type="file" id="file">
-    <button id="verifyButton">Verify Evidence</button>
 
-    <p id="verificationResult">Your verification result will appear here.</p>
+    <!-- =========================================
+         NAVIGATION
+    ========================================== -->
+
+    <header class="topbar">
+
+        <a href="index.html" class="brand">
+
+            <span class="brand-icon">⌑</span>
+
+            PROOF<span>LOCK</span>
+
+        </a>
+
+
+        <nav>
+
+            <a href="index.html">
+                Seal evidence
+            </a>
+
+            <a href="verify.html" class="active">
+                Verify
+            </a>
+
+        </nav>
+
+
+        <div class="network">
+
+            <span class="network-dot"></span>
+
+            Sepolia network
+
+        </div>
+
+    </header>
+
+
+
+    <!-- =========================================
+         MAIN CONTENT
+    ========================================== -->
+
+    <main class="verify-shell">
+
+
+        <!-- HERO SECTION -->
+
+        <section class="hero">
+
+            <div class="eyebrow">
+
+                <span class="eyebrow-dot"></span>
+
+                BLOCKCHAIN VERIFICATION
+
+            </div>
+
+
+            <h1>
+                Verify your <span>evidence.</span>
+            </h1>
+
+
+            <p>
+                Check whether a file matches its recorded SHA-256
+                fingerprint on the ProofLock blockchain.
+            </p>
+
+        </section>
+
+
+
+        <!-- =========================================
+             VERIFICATION PANEL
+        ========================================== -->
+
+        <section class="panel">
+
+
+            <!-- PANEL HEADER -->
+
+            <div class="panel-head">
+
+                <div>
+
+                    <div class="step">
+                        VERIFICATION
+                    </div>
+
+                    <h2>
+                        Check evidence integrity
+                    </h2>
+
+                    <p>
+                        Upload the original file to compare its
+                        fingerprint with the blockchain record.
+                    </p>
+
+                </div>
+
+
+                <span class="verify-symbol">
+                    ✓
+                </span>
+
+            </div>
+
+
+
+            <!-- =====================================
+                 QR CERTIFICATE INFORMATION
+            ====================================== -->
+
+            <div
+                id="qrRecordCard"
+                class="qr-record"
+                hidden
+            >
+
+                <div class="qr-record-heading">
+
+                    <span class="record-icon">
+                        ⌑
+                    </span>
+
+
+                    <div>
+
+                        <strong>
+                            Certificate fingerprint
+                        </strong>
+
+                        <p>
+                            This fingerprint was provided by the QR certificate.
+                        </p>
+
+                    </div>
+
+                </div>
+
+
+                <div
+                    id="expectedHash"
+                    class="hash-value"
+                >
+                    Waiting for fingerprint...
+                </div>
+
+            </div>
+
+
+
+            <!-- =====================================
+                 FILE UPLOAD
+            ====================================== -->
+
+            <input
+                type="file"
+                id="file"
+                hidden
+            >
+
+
+            <label
+                for="file"
+                class="verify-drop"
+                id="uploadZone"
+            >
+
+                <span class="upload-symbol">
+                    ↑
+                </span>
+
+
+                <h3>
+                    Drop your evidence file here
+                </h3>
+
+
+                <p>
+                    or
+                    <span class="upload-link">browse files</span>
+                    from your device
+                </p>
+
+
+                <p class="upload-note">
+                    Select the original file you want to verify.
+                </p>
+
+
+                <span
+                    id="selectedFile"
+                    class="selected-file"
+                >
+                    No file selected
+                </span>
+
+            </label>
+
+
+
+            <!-- =====================================
+                 VERIFY BUTTON
+            ====================================== -->
+
+            <div class="actions">
+
+                <button
+                    type="button"
+                    id="verifyButton"
+                    class="btn primary"
+                >
+                    Verify evidence
+                </button>
+
+            </div>
+
+
+
+            <!-- =====================================
+                 VERIFICATION RESULT
+            ====================================== -->
+
+            <div
+                id="verificationResult"
+                class="result"
+                role="status"
+                aria-live="polite"
+            >
+
+                <div class="result-icon">
+                    i
+                </div>
+
+
+                <div class="result-copy">
+
+                    <h3 id="resultTitle">
+                        Ready to verify
+                    </h3>
+
+
+                    <p id="resultMessage">
+                        Select an evidence file and click Verify
+                        evidence to begin.
+                    </p>
+
+
+                    <p
+                        id="resultDetails"
+                        class="result-details"
+                    ></p>
+
+                </div>
+
+            </div>
+
+
+        </section>
+
+
+
+        <!-- =========================================
+             EXPLANATION
+        ========================================== -->
+
+        <section class="notice">
+
+            <span class="notice-icon">
+                i
+            </span>
+
+
+            <p>
+
+                <strong>
+                    What does verification mean?
+                </strong>
+
+                ProofLock compares the uploaded file's SHA-256
+                fingerprint with the fingerprint recorded on the
+                Sepolia blockchain.
+
+                A match indicates that the uploaded file has the
+                same contents as the file represented by that
+                blockchain record.
+
+                It does not prove who originally created the file
+                or whether its contents are truthful.
+
+            </p>
+
+        </section>
+
+
+
+        <!-- =========================================
+             RETURN LINK
+        ========================================== -->
+
+        <div class="verify-back">
+
+            <a href="index.html">
+                ← Back to evidence sealing
+            </a>
+
+        </div>
+
+
+    </main>
+
+
+
+    <!-- =========================================
+         FOOTER
+    ========================================== -->
+
+    <footer>
+
+        <p>
+            PROOFLOCK · DIGITAL EVIDENCE INTEGRITY
+        </p>
+
+        <p>
+            Secured by SHA-256 and the Sepolia blockchain
+        </p>
+
+    </footer>
+
+
 </body>
+
 </html>

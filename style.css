@@ -1346,3 +1346,40 @@ footer p {
         animation-duration: 0.01ms !important;
     }
 }
+
+
+/* =========================================
+   PROOFLOCK — SHIELD + FINGERPRINT LOGO
+========================================= */
+
+.brand-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 48px;
+    height: 48px;
+    border: 1px solid rgba(205, 151, 225, 0.38);
+    border-radius: 15px;
+    background: linear-gradient(
+        145deg,
+        rgba(183, 119, 207, 0.18),
+        rgba(91, 53, 112, 0.12)
+    );
+    color: #d9a6e8;
+    transition: all 0.25s ease;
+}
+
+.shield-logo {
+    display: block;
+    width: 31px;
+    height: 31px;
+    overflow: visible;
+}
+
+.brand:hover .brand-icon {
+    border-color: #d9a6e8;
+    background: rgba(183, 119, 207, 0.24);
+    box-shadow: 0 0 18px rgba(183, 119, 207, 0.2);
+    transform: translateY(-2px);
+}

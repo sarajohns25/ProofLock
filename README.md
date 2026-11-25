@@ -16,7 +16,7 @@ The project focuses on making digital evidence easier to verify without having t
 
 - **Live Application:** https://sarajohns25.github.io/ProofLock/
 - **GitHub Repository:** https://github.com/sarajohns25/ProofLock
-- **Demo Video:** 
+- **Demo Video:** https://drive.google.com/file/d/1UO8gluIC3swUZ_yzwBiSSTmBZCeoQc61/view?usp=drive_link
 
 ---
 
@@ -257,9 +257,6 @@ It also helped me understand the limitations of blockchain-based evidence verifi
 **Category:** Cybersecurity / Blockchain / Digital Evidence Integrity  
 **Blockchain:** Ethereum Sepolia Testnet  
 **Developer:** Sara Johns  
-
-**Live Application:** https://sarajohns25.github.io/ProofLock/  
-**GitHub Repository:** https://github.com/sarajohns25/ProofLock  
 
 ---
 
